@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dernek Görevli Takip</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            font-size: 2em;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        input, button {
+            font-size: 1.2em;
+            padding: 10px;
+            margin: 10px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 15px;
+            font-size: 1.2em;
+        }
+        th {
+            background: #007bff;
+            color: white;
+        }
+        button {
+            cursor: pointer;
+            border: none;
+            background: #28a745;
+            color: white;
+            border-radius: 5px;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+    </style>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, get, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB46q5bSllenIsg85suntRRfjO1KybDZJU",
+            authDomain: "kermes-yemek-listesi.firebaseapp.com",
+            databaseURL: "https://kermes-yemek-listesi-default-rtdb.firebaseio.com",
+            projectId: "kermes-yemek-listesi",
+            storageBucket: "kermes-yemek-listesi.firebasestorage.app",
+            messagingSenderId: "126100955704",
+            appId: "1:126100955704:web:1a8054ac1b639666cebccd",
+            measurementId: "G-YP5Z3BXP8T"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const gorevlilerRef = ref(database, "gorevliler");
+
+        window.ekleGorevli = function () {
+            let isimInput = document.getElementById("gorevliIsim");
+            let isim = isimInput.value.trim();
+            if (isim) {
+                let yeniGorevli = { isim, yemek: 2, icecek: 2 };
+                set(ref(database, `gorevliler/${isim}`), yeniGorevli);
+                isimInput.value = "";
+            } else {
+                alert("Lütfen bir isim girin!");
+            }
+        };
+
+        window.azalt = function (isim, tur) {
+            get(ref(database, `gorevliler/${isim}`)).then(snapshot => {
+                if (snapshot.exists()) {
+                    let gorevli = snapshot.val();
+                    if (gorevli[tur] > 0) {
+                        update(ref(database, `gorevliler/${isim}`), { [tur]: gorevli[tur] - 1 });
+                    }
+                }
+            });
+        };
+
+        window.silGorevli = function (isim) {
+            if (confirm(`${isim} isimli görevliyi silmek istediğinizden emin misiniz?`)) {
+                remove(ref(database, `gorevliler/${isim}`));
+            }
+        };
+
+        function guncelleListe(snapshot) {
+            let liste = document.getElementById("gorevliListesi");
+            liste.innerHTML = "";
+            if (snapshot.exists()) {
+                let gorevliler = snapshot.val();
+                Object.keys(gorevliler).forEach(isim => {
+                    let g = gorevliler[isim];
+                    let satir = `<tr>
+                        <td>${g.isim}</td>
+                        <td><button onclick='silGorevli("${g.isim}")'>❌</button></td>
+                        <td>${g.yemek} <button onclick='azalt("${g.isim}", "yemek")'>-</button></td>
+                        <td>${g.icecek} <button onclick='azalt("${g.isim}", "icecek")'>-</button></td>
+                    </tr>`;
+                    liste.innerHTML += satir;
+                });
+            }
+        }
+
+        onValue(gorevlilerRef, snapshot => {
+            guncelleListe(snapshot);
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Dernek Görevli Takip</h1>
+        <input type="text" id="gorevliIsim" placeholder="Görevli İsmi Gir">
+        <button onclick="ekleGorevli()">Görevli Ekle</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>İsim</th>
+                    <th>Sil</th>
+                    <th>Yemek</th>
+                    <th>İçecek</th>
+                </tr>
+            </thead>
+            <tbody id="gorevliListesi">
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
